@@ -1,0 +1,7 @@
+Hello and welcome to this tutorial. Today we are going to walk through the key features of our product.
+
+This AI-powered system allows you to create professional presenter videos entirely offline, without any cloud services or API costs.
+
+You simply provide a script, an avatar image, and optionally a voice sample. The system handles everything else automatically — speech synthesis, lip synchronization, subtitle generation, and final video rendering.
+
+Let us now look at how you can get started in just a few simple steps.

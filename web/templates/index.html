@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avatar Generator Studio</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Offline AI avatar studio</p>
+        <h1>Upload an avatar, script, and optional voice sample.</h1>
+        <p class="lede">Choose the generation mode and send everything to the existing pipeline from a single local page.</p>
+      </div>
+      <div class="hero-card">
+        <div class="stat"><span>Mode</span><strong>Fast, balanced, or quality</strong></div>
+        <div class="stat"><span>Inputs</span><strong>Avatar + script + voice</strong></div>
+        <div class="stat"><span>Output</span><strong>MP4 video with subtitles</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <form id="generator-form">
+        <div class="grid">
+          <label class="field upload">
+            <span>Avatar image</span>
+            <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/webp" required>
+            <small>JPG, PNG, or WEBP.</small>
+          </label>
+
+          <label class="field upload">
+            <span>Script file</span>
+            <input type="file" name="script_file" accept=".txt">
+            <small>Optional .txt upload.</small>
+          </label>
+
+          <label class="field upload">
+            <span>Voice sample</span>
+            <input type="file" name="voice_file" accept="audio/wav,audio/mp3,audio/mpeg,audio/m4a,audio/flac,audio/ogg">
+            <small>Optional voice clone sample.</small>
+          </label>
+
+          <label class="field">
+            <span>Mode</span>
+            <select name="mode">
+              <option value="fast" selected>Fast</option>
+              <option value="balanced">Balanced</option>
+              <option value="quality">Quality</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Avatar motion model</span>
+            <select name="talking_head">
+              <option value="sadtalker" selected>SadTalker</option>
+              <option value="wav2lip">Wav2Lip</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>TTS engine</span>
+            <select name="tts_engine">
+              <option value="piper" selected>Piper</option>
+              <option value="xtts">XTTS</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Motion Mode</span>
+            <select name="motion">
+              <option value="static" selected>Static</option>
+              <option value="dynamic">Dynamic</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Pose Style (0-45)</span>
+            <input type="number" name="pose_style" min="0" max="45" value="0">
+          </label>
+        </div>
+
+        <label class="field textarea-field">
+          <span>Script text</span>
+          <textarea name="script_text" rows="12" placeholder="Paste narration here, or upload a .txt above."></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="submit">Generate video</button>
+          <p id="status-text">Ready.</p>
+        </div>
+      </form>
+
+      <div class="result" id="result-box" hidden>
+        <h2>Job status</h2>
+        <p id="job-message"></p>
+        <a id="download-link" href="#" hidden>Download MP4</a>
+        <pre id="error-box" hidden></pre>
+        <div class="log-shell">
+          <div class="log-header">
+            <span>Live output</span>
+          </div>
+          <pre id="log-box" class="log-box">Waiting for output...</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Local Python environments
+venv311/
+.venv/
+venv/
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Generated outputs and temporary files
+output/
+temp/
+logs/
+web_outputs/
+web_uploads/
+
+# Generated media and subtitle files
+*.mp4
+*.srt
+*.ass
+
+# IDE and OS files
+.vscode/
+.DS_Store
+Thumbs.db

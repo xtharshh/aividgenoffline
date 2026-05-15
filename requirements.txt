@@ -1,0 +1,50 @@
+
+# Core deep learning
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+
+# TTS engines
+coqui-tts>=0.22.0       # XTTS-v2 (Coqui) - Note: package name is coqui-tts
+piper-tts>=1.2.0        # Fast lightweight TTS
+
+# Subtitles / transcription
+faster-whisper>=1.0.0
+
+# Audio processing
+soundfile>=0.12.1
+librosa>=0.10.0
+noisereduce>=3.0.0
+
+# Image / video processing
+opencv-python>=4.8.0
+Pillow>=10.0.0
+ffmpeg-python>=0.2.0
+
+# Face / motion
+face-alignment>=1.4.1
+mediapipe>=0.10.0
+insightface>=0.7.3
+facexlib>=0.3.0
+yacs>=0.1.8
+pydub>=0.25.1
+
+# Model utilities
+huggingface-hub>=0.20.0
+safetensors>=0.4.0
+
+# Infrastructure
+numpy>=1.26.0           # Updated: avoid old distutils issues on Python 3.10+
+scipy>=1.11.0
+tqdm>=4.66.0
+loguru>=0.7.0
+requests>=2.31.0
+Flask>=3.0.0
+imageio-ffmpeg>=0.5.1
+# Project state
+# sqlite3 is built into Python standard library
+
+# Optional (uncomment if needed)
+# onnxruntime-gpu>=1.17.0   # ONNX acceleration
+basicsr>=1.4.2             # SadTalker dependency
+gfpgan>=1.3.8              # Face enhancement
