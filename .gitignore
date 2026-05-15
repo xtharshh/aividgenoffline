@@ -25,6 +25,10 @@ web_uploads/
 *.srt
 *.ass
 
+# Large local model artifacts
+gfpgan/weights/*.pth
+models/piper/*.onnx
+
 # IDE and OS files
 .vscode/
 .DS_Store
