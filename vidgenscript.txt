@@ -1,0 +1,22 @@
+
+Welcome to the offline AI avatar studio.
+In this short demo, I will show the full flow on the local web page.
+
+First, open the Avatar Generator Studio page in the browser.
+Now upload an avatar image of your presenter.
+Next, upload this script file, or paste the script into the script text area.
+
+For speech, choose the TTS engine.
+If you select Piper, set Piper voice to Male, Ryan.
+If you want a custom male voice, choose XTTS and upload a male voice sample.
+
+Now upload a screen recording so it appears behind the avatar as picture in picture.
+Set the PiP layout to bottom right for a classic tutorial look.
+Choose Fast mode for quick tests, or Balanced for better quality.
+
+Click Generate video and wait for the live logs.
+The system runs text to speech, avatar animation, subtitles, and final composition.
+When the job finishes, download the MP4 result.
+
+That is the complete local workflow.
+You now have a synced avatar and screen demo video generated fully offline.

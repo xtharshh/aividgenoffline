@@ -48,3 +48,9 @@ imageio-ffmpeg>=0.5.1
 # onnxruntime-gpu>=1.17.0   # ONNX acceleration
 basicsr>=1.4.2             # SadTalker dependency
 gfpgan>=1.3.8              # Face enhancement
+
+# Smart Sync
+google-genai>=0.3.0
+scenedetect>=0.6.3
+python-dotenv>=1.0.0
+openai>=1.14.0

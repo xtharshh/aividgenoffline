@@ -11,6 +11,9 @@ import argparse
 import sys
 import os
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def _bootstrap_project_python() -> None:
@@ -96,12 +99,19 @@ def parse_args():
 
     # Screen overlay
     parser.add_argument("--pip-layout", default="bottom_right",
-                        choices=["bottom_right", "bottom_left", "side_by_side", "top_right"])
+                        choices=["bottom_right", "bottom_left", "side_by_side", "top_right", "top_left", "center", "top", "bottom", "left", "right"])
+
+    # Smart Sync
+    parser.add_argument("--smart-sync", action="store_true", help="Sync screen recording with script using OpenAI")
+    parser.add_argument("--openai-api-key", default=os.environ.get("OPENAI_API_KEY"), help="OpenAI API Key for Smart Sync")
 
     # TTS
     parser.add_argument("--tts-engine", default=None,
                         choices=["piper", "xtts"],
                         help="Override TTS engine (auto-selected based on mode if not set)")
+    parser.add_argument("--piper-voice", default="en_US_male",
+                        choices=["en_US_female", "en_US_male"],
+                        help="Piper voice model (used when tts engine is piper)")
 
     # GPU
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
@@ -159,7 +169,10 @@ def main():
         "sub_style":    args.sub_style,
         "burn_subs":    args.burn_subs,
         "pip_layout":   args.pip_layout,
+        "smart_sync":   args.smart_sync,
+        "openai_api_key": args.openai_api_key,
         "tts_engine":   args.tts_engine,
+        "piper_voice":  args.piper_voice,
         "device":       args.device,
         "vram":         args.vram,
         "resume":       args.resume,

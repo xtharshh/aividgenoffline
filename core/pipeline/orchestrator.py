@@ -34,6 +34,8 @@ class Orchestrator:
         # Project state for resume support
         project_id = Path(config["output"]).stem
         self.state = ProjectState(f"projects/{project_id}.db")
+        if not config.get("resume"):
+            self.state.reset()
 
         log.info(f"Device     : {self.device.upper()}")
         log.info(f"VRAM       : {self.vram_gb:.1f} GB")
@@ -110,31 +112,50 @@ class Orchestrator:
                 script_text = f.read().strip()
             log.info(f"Script: {len(script_text.split())} words")
 
+            # ── Stage 0: Smart Sync Analysis ──────────────────────────
+            screen_video = cfg.get("screen")
+            openai_data = None
+            if cfg.get("smart_sync") and screen_video and os.path.exists(screen_video):
+                openai_data, refined_script = self._stage_smart_sync_analysis(screen_video, script_text)
+                if refined_script:
+                    if script_text != refined_script:
+                        # Clear downstream caches to force regeneration with the new script
+                        self.state.mark_pending("tts")
+                        self.state.mark_pending("subtitles")
+                        self.state.mark_pending("avatar")
+                        self.state.mark_pending("smart_sync")
+                    script_text = refined_script
+
             # ── Stage 1: TTS ──────────────────────────────────────────
             audio_path = self._stage_tts(script_text)
             if not audio_path:
                 return False
 
-            # ── Stage 2: Talking head ─────────────────────────────────
+            # ── Stage 2: Subtitles (needed for smart sync) ────────────
+            srt_path, ass_path = None, None
+            if cfg.get("subtitles") or cfg.get("smart_sync"):
+                srt_path, ass_path = self._stage_subtitles(audio_path)
+
+            # ── Stage 3: Smart Sync Video Edit ────────────────────────
+            if cfg.get("smart_sync") and screen_video and os.path.exists(screen_video) and openai_data:
+                screen_video = self._stage_smart_sync_edit(screen_video, srt_path, audio_path, openai_data)
+                self.config["screen"] = screen_video
+
+            # ── Stage 4: Talking head ─────────────────────────────────
             avatar_video = self._stage_avatar(audio_path)
             if not avatar_video:
                 return False
 
-            # ── Stage 3: Subtitles ────────────────────────────────────
-            srt_path, ass_path = None, None
-            if cfg["subtitles"]:
-                srt_path, ass_path = self._stage_subtitles(audio_path)
-
-            # ── Stage 4: Screen overlay ───────────────────────────────
+            # ── Stage 5: Screen overlay ───────────────────────────────
             final_input = avatar_video
-            if cfg.get("screen") and os.path.exists(cfg["screen"]):
+            if screen_video and os.path.exists(screen_video):
                 final_input = self._stage_screen_overlay(avatar_video)
 
-            # ── Stage 5: Final render ─────────────────────────────────
-            success = self._stage_final_render(final_input, audio_path, ass_path)
+            # ── Stage 6: Final render ─────────────────────────────────
+            success = self._stage_final_render(final_input, audio_path, ass_path if cfg.get("subtitles") else None)
 
             # Copy SRT to output dir
-            if srt_path and os.path.exists(srt_path):
+            if srt_path and os.path.exists(srt_path) and cfg.get("subtitles"):
                 out_srt = cfg["output"].replace(".mp4", ".srt")
                 import shutil
                 shutil.copy(srt_path, out_srt)
@@ -170,7 +191,7 @@ class Orchestrator:
             engine = XTTSEngine(self.device)
         else:
             from core.stages.tts.piper_engine import PiperEngine
-            engine = PiperEngine()
+            engine = PiperEngine(voice=self.config.get("piper_voice", "en_US_male"))
 
         raw_audio = f"{self.temp_dir}/speech_raw.wav"
         ok = engine.synthesize(
@@ -290,6 +311,49 @@ class Orchestrator:
 
         self.state.mark_done("subtitles")
         return srt_path, ass_path
+
+    # ─────────────────────────────────────────────────────────────────
+    # Stage 0 — Smart Sync Analysis
+    # ─────────────────────────────────────────────────────────────────
+    def _stage_smart_sync_analysis(self, screen_video: str, script_text: str):
+        log.info("[0/6] Running OpenAI Video Analysis...")
+        print("\n🧠 Stage 0/6 — Smart Sync Analysis (OpenAI GPT-4o-mini)")
+        
+        api_key = self.config.get("openai_api_key")
+        if not api_key:
+            log.warning("OpenAI API Key missing! Skipping Smart Sync.")
+            return None, None
+            
+        from core.stages.smart_sync.openai_analyzer import OpenAIAnalyzer
+        analyzer = OpenAIAnalyzer(api_key=api_key)
+        
+        openai_data, refined_script = analyzer.sync_script_to_video(screen_video, script_text)
+        if not openai_data:
+            log.warning("OpenAI analysis failed. Skipping sync.")
+            return None, None
+            
+        return openai_data, refined_script
+
+    # ─────────────────────────────────────────────────────────────────
+    # Stage 3.5 — Smart Sync Video Edit
+    # ─────────────────────────────────────────────────────────────────
+    def _stage_smart_sync_edit(self, screen_video: str, srt_path: str, audio_path: str, openai_data: list) -> str:
+        synced_path = f"{self.temp_dir}/screen_synced.mp4"
+        if self.state.is_done("smart_sync") and os.path.exists(synced_path):
+            log.info("[3.5/6] Smart Sync — skipped (cached)")
+            return synced_path
+            
+        log.info("[3.5/6] Running Smart Sync Video Editor...")
+        from core.stages.smart_sync.video_editor import VideoEditor
+        editor = VideoEditor()
+        ok = editor.sync_video_to_audio(screen_video, srt_path, audio_path, openai_data, synced_path)
+        
+        if ok:
+            self.state.mark_done("smart_sync")
+            return synced_path
+            
+        log.warning("Video syncing failed. Using original screen video.")
+        return screen_video
 
     # ─────────────────────────────────────────────────────────────────
     # Stage 4 — Screen overlay

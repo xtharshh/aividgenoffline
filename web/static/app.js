@@ -6,6 +6,24 @@ const downloadLink = document.getElementById('download-link');
 const errorBox = document.getElementById('error-box');
 const logBox = document.getElementById('log-box');
 
+const smartSyncCheckbox = document.getElementById('smart_sync');
+const openaiApiKeyField = document.getElementById('openai_api_key_field');
+const openaiApiKeyInput = document.getElementById('openai_api_key');
+
+// Load API key from local storage
+if (localStorage.getItem('openai_api_key')) {
+  openaiApiKeyInput.value = localStorage.getItem('openai_api_key');
+}
+
+// Toggle field visibility
+smartSyncCheckbox.addEventListener('change', () => {
+  if (smartSyncCheckbox.checked) {
+    openaiApiKeyField.style.display = 'block';
+  } else {
+    openaiApiKeyField.style.display = 'none';
+  }
+});
+
 let lastLogCount = 0;
 
 function renderLogs(logs) {
@@ -42,6 +60,7 @@ async function pollJob(url) {
     jobMessage.textContent = 'Your video is ready.';
     downloadLink.hidden = false;
     downloadLink.href = data.result_url;
+    downloadLink.download = 'avatar_video.mp4';
     downloadLink.textContent = 'Download MP4';
     errorBox.hidden = true;
     return;
@@ -69,7 +88,13 @@ form.addEventListener('submit', async (event) => {
   logBox.textContent = 'Waiting for output...';
   lastLogCount = 0;
 
+  // Save API key
+  if (openaiApiKeyInput.value) {
+    localStorage.setItem('openai_api_key', openaiApiKeyInput.value);
+  }
+
   const formData = new FormData(form);
+  formData.set('smart_sync', smartSyncCheckbox.checked ? 'true' : 'false');
   const response = await fetch('/submit', { method: 'POST', body: formData });
   const data = await response.json();
 

@@ -42,6 +42,39 @@
             <small>Optional voice clone sample.</small>
           </label>
 
+          <label class="field upload">
+            <span>Screen recording</span>
+            <input type="file" name="screen_file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska">
+            <small>Optional PiP background.</small>
+          </label>
+
+          <label class="field">
+            <span>Smart Sync</span>
+            <input type="checkbox" name="smart_sync" id="smart_sync" style="width:auto; margin-top:10px;">
+            <small>Sync screen recording with script.</small>
+          </label>
+
+          <label class="field" id="openai_api_key_field" style="display:none;">
+            <span>OpenAI API Key</span>
+            <input type="password" name="openai_api_key" id="openai_api_key" placeholder="sk-proj-...">
+          </label>
+
+          <label class="field">
+            <span>PiP Layout</span>
+            <select name="pip_layout">
+              <option value="bottom_right" selected>Bottom Right</option>
+              <option value="bottom_left">Bottom Left</option>
+              <option value="top_right">Top Right</option>
+              <option value="top_left">Top Left</option>
+              <option value="center">Center</option>
+              <option value="top">Top</option>
+              <option value="bottom">Bottom</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+              <option value="side_by_side">Side by Side</option>
+            </select>
+          </label>
+
           <label class="field">
             <span>Mode</span>
             <select name="mode">
@@ -64,6 +97,14 @@
             <select name="tts_engine">
               <option value="piper" selected>Piper</option>
               <option value="xtts">XTTS</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Piper voice</span>
+            <select name="piper_voice">
+              <option value="en_US_male" selected>Male (Ryan)</option>
+              <option value="en_US_female">Female (Lessac)</option>
             </select>
           </label>
 

@@ -24,7 +24,7 @@ PIPER_MODELS = {
     },
 }
 
-DEFAULT_VOICE = "en_US_female"
+DEFAULT_VOICE = "en_US_male"
 MODELS_DIR = "models/piper"
 
 
@@ -89,15 +89,7 @@ class PiperEngine:
 
                 voice_model = PiperVoice.load(model_path)
                 with wave.open(output_path, "wb") as wav_file:
-                    # Initialize WAV header before writing frames.
-                    # Piper outputs mono 16-bit PCM.
-                    sample_rate = 22050
-                    if hasattr(voice_model, "config") and hasattr(voice_model.config, "sample_rate"):
-                        sample_rate = int(voice_model.config.sample_rate)
-                    wav_file.setnchannels(1)
-                    wav_file.setsampwidth(2)
-                    wav_file.setframerate(sample_rate)
-                    voice_model.synthesize(text, wav_file)
+                    voice_model.synthesize_wav(text, wav_file)
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 44:
                     log.info(f"  Audio saved: {output_path}")
                     return True

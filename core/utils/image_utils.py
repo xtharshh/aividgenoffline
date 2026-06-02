@@ -14,23 +14,31 @@ RESOLUTION_DIMS = {
 def prepare_avatar_image(image_path: str, resolution: str = "1080p",
                          bg_color: tuple = (30, 30, 30)) -> str:
     """
-    Resize avatar image to target resolution, pad to exact size.
+    Resize avatar image to a safe working size (max 768px).
+    Does NOT pad to full resolution, as FFmpeg handles padding later.
+    This saves massive amounts of RAM and VRAM during AI generation.
     Returns path to prepared image (saved to temp/).
     """
-    W, H = RESOLUTION_DIMS.get(resolution, (1920, 1080))
     output_path = "temp/avatar_prepared.jpg"
     os.makedirs("temp", exist_ok=True)
 
     try:
         img = Image.open(image_path).convert("RGB")
-        # Maintain aspect ratio, fit within target
-        img.thumbnail((W, H), Image.LANCZOS)
-        # Pad to exact dimensions
-        canvas = Image.new("RGB", (W, H), bg_color)
-        offset = ((W - img.width) // 2, (H - img.height) // 2)
-        canvas.paste(img, offset)
-        canvas.save(output_path, "JPEG", quality=95)
-        log.info(f"  Avatar prepared: {img.width}x{img.height} → {W}x{H}")
+        
+        # Max dimension for working safely without OOM
+        max_dim = 768
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+            
+        # Ensure dimensions are even (required by most video codecs/models)
+        new_w = img.width if img.width % 2 == 0 else img.width - 1
+        new_h = img.height if img.height % 2 == 0 else img.height - 1
+        
+        if new_w != img.width or new_h != img.height:
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            
+        img.save(output_path, "JPEG", quality=95)
+        log.info(f"  Avatar prepared: {img.width}x{img.height} (No padding)")
         return output_path
     except Exception as e:
         log.error(f"  Avatar preparation failed: {e}")

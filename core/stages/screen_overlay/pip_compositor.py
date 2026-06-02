@@ -47,8 +47,8 @@ class PiPCompositor:
                     "-i", screen_video,
                     "-i", avatar_video,
                     "-filter_complex",
-                    f"[0:v]scale={sc_w}:{H}[left];"
-                    f"[1:v]scale={av_w}:{H}[right];"
+                    f"[0:v]scale={sc_w}:{H}:force_original_aspect_ratio=decrease,pad={sc_w}:{H}:(ow-iw)/2:(oh-ih)/2:black[left];"
+                    f"[1:v]scale={av_w}:{H}:force_original_aspect_ratio=decrease,pad={av_w}:{H}:(ow-iw)/2:(oh-ih)/2:black[right];"
                     f"[left][right]hstack=inputs=2[v]",
                     "-map", "[v]", "-map", "1:a",
                     "-c:v", "libx264", "-crf", "18", "-preset", "fast",
@@ -56,25 +56,30 @@ class PiPCompositor:
                     output_path
                 ]
             else:
-                # PiP overlay positions
+                # PiP overlay positions using FFmpeg expressions
                 positions = {
-                    "bottom_right": (W - AV_W - MARGIN, H - AV_H - MARGIN),
-                    "bottom_left":  (MARGIN, H - AV_H - MARGIN),
-                    "top_right":    (W - AV_W - MARGIN, MARGIN),
-                    "top_left":     (MARGIN, MARGIN),
+                    "bottom_right": f"W-w-{MARGIN}:H-h-{MARGIN}",
+                    "bottom_left":  f"{MARGIN}:H-h-{MARGIN}",
+                    "top_right":    f"W-w-{MARGIN}:{MARGIN}",
+                    "top_left":     f"{MARGIN}:{MARGIN}",
+                    "center":       f"(W-w)/2:(H-h)/2",
+                    "top":          f"(W-w)/2:{MARGIN}",
+                    "bottom":       f"(W-w)/2:H-h-{MARGIN}",
+                    "left":         f"{MARGIN}:(H-h)/2",
+                    "right":        f"W-w-{MARGIN}:(H-h)/2",
                 }
-                px, py = positions.get(layout, positions["bottom_right"])
+                overlay_pos = positions.get(layout, positions["bottom_right"])
 
                 cmd = [
                     ffmpeg_path, "-y",
                     "-i", screen_video,
                     "-i", avatar_video,
                     "-filter_complex",
-                    f"[0:v]scale={W}:{H}[bg];"
-                    f"[1:v]scale={AV_W}:{AV_H},"
+                    f"[0:v]scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:black[bg];"
+                    f"[1:v]scale={AV_W}:{AV_H}:force_original_aspect_ratio=decrease,"
                     f"format=yuva420p,"
                     f"geq=lum='p(X,Y)':a='if(gt(alpha(X,Y),128),255,0)'[pip];"
-                    f"[bg][pip]overlay={px}:{py}[v]",
+                    f"[bg][pip]overlay={overlay_pos}[v]",
                     "-map", "[v]", "-map", "1:a",
                     "-c:v", "libx264", "-crf", "18", "-preset", "fast",
                     "-c:a", "aac", "-b:a", "192k",

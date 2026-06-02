@@ -2,6 +2,8 @@
 venv311/
 .venv/
 venv/
+env
+.env/
 
 # Python cache and build artifacts
 __pycache__/
@@ -33,3 +35,4 @@ models/piper/*.onnx
 .vscode/
 .DS_Store
 Thumbs.db
+.env

@@ -10,6 +10,9 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request, send_from_directory, url_for
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -22,6 +25,7 @@ PYTHON_EXE = BASE_DIR / "venv311" / "Scripts" / "python.exe"
 ALLOWED_AVATAR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_SCRIPT_EXTENSIONS = {".txt"}
 ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv"}
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 250 * 1024 * 1024
@@ -35,11 +39,16 @@ class JobState:
     mode: str = "fast"
     talking_head: str = "sadtalker"
     tts_engine: str = "piper"
+    piper_voice: str = "en_US_male"
     motion: str = "static"
     pose_style: int = 0
+    pip_layout: str = "bottom_right"
+    smart_sync: bool = False
+    openai_api_key: str = ""
     script_path: Path | None = None
     avatar_path: Path | None = None
     voice_path: Path | None = None
+    screen_path: Path | None = None
     output_path: Path | None = None
     stderr: str = ""
     logs: list[str] = None
@@ -106,8 +115,16 @@ def start_worker() -> None:
 
                 if job.tts_engine:
                     command.extend(["--tts-engine", job.tts_engine])
+                if job.piper_voice:
+                    command.extend(["--piper-voice", job.piper_voice])
                 if job.voice_path:
                     command.extend(["--voice", str(job.voice_path)])
+                if job.screen_path:
+                    command.extend(["--screen", str(job.screen_path), "--pip-layout", job.pip_layout])
+                    if job.smart_sync:
+                        command.append("--smart-sync")
+                        if job.openai_api_key:
+                            command.extend(["--openai-api-key", job.openai_api_key])
 
                 child_env = {
                     **os.environ,
@@ -169,11 +186,16 @@ def submit():
     avatar_file = request.files.get("avatar_file")
     script_file = request.files.get("script_file")
     voice_file = request.files.get("voice_file")
+    screen_file = request.files.get("screen_file")
     script_text = (request.form.get("script_text") or "").strip()
     mode = request.form.get("mode", "fast")
     talking_head = request.form.get("talking_head", "sadtalker")
     tts_engine = request.form.get("tts_engine", "piper")
+    piper_voice = request.form.get("piper_voice", "en_US_male")
     motion = request.form.get("motion", "static")
+    pip_layout = request.form.get("pip_layout", "bottom_right")
+    smart_sync = request.form.get("smart_sync") == "true"
+    openai_api_key = request.form.get("openai_api_key") or os.environ.get("OPENAI_API_KEY", "")
     try:
         pose_style = int(request.form.get("pose_style", "0"))
     except ValueError:
@@ -185,6 +207,8 @@ def submit():
         return jsonify({"error": "Provide script text or upload a .txt file."}), 400
     if talking_head not in {"sadtalker", "wav2lip"}:
         return jsonify({"error": "Invalid talking head selection."}), 400
+    if piper_voice not in {"en_US_female", "en_US_male"}:
+        return jsonify({"error": "Invalid Piper voice selection."}), 400
 
     avatar_name = secure_filename(avatar_file.filename)
     if not is_allowed(avatar_name, ALLOWED_AVATAR_EXTENSIONS):
@@ -193,6 +217,8 @@ def submit():
         return jsonify({"error": "Script upload must be a .txt file."}), 400
     if voice_file and voice_file.filename and not is_allowed(voice_file.filename, ALLOWED_AUDIO_EXTENSIONS):
         return jsonify({"error": "Voice sample must be a wav, mp3, m4a, flac, or ogg file."}), 400
+    if screen_file and screen_file.filename and not is_allowed(screen_file.filename, ALLOWED_VIDEO_EXTENSIONS):
+        return jsonify({"error": "Screen recording must be a video file (mp4, mov, etc.)."}), 400
 
     job_id = uuid.uuid4().hex[:12]
     job_dir = JOB_ROOT / job_id
@@ -213,16 +239,26 @@ def submit():
         voice_path = job_dir / f"voice{Path(secure_filename(voice_file.filename)).suffix.lower()}"
         voice_file.save(voice_path)
 
+    screen_path = None
+    if screen_file and screen_file.filename:
+        screen_path = job_dir / f"screen{Path(secure_filename(screen_file.filename)).suffix.lower()}"
+        screen_file.save(screen_path)
+
     job = JobState(
         job_id=job_id,
         mode=mode,
         talking_head=talking_head,
         tts_engine=tts_engine,
+        piper_voice=piper_voice,
         motion=motion,
         pose_style=pose_style,
+        pip_layout=pip_layout,
+        smart_sync=smart_sync,
+        openai_api_key=openai_api_key,
         script_path=script_path,
         avatar_path=avatar_path,
         voice_path=voice_path,
+        screen_path=screen_path,
     )
     jobs[job_id] = job
     job_queue.put(job_id)
@@ -252,10 +288,10 @@ def job_status(job_id: str):
 
 @app.route("/jobs/<job_id>/result")
 def job_result(job_id: str):
-    job = jobs.get(job_id)
-    if job is None or job.output_path is None or not job.output_path.exists():
+    output_path = OUTPUT_ROOT / f"{job_id}.mp4"
+    if not output_path.exists():
         return jsonify({"error": "Result not ready"}), 404
-    return send_from_directory(OUTPUT_ROOT, job.output_path.name, as_attachment=True)
+    return send_from_directory(str(OUTPUT_ROOT), output_path.name, as_attachment=True)
 
 
 def create_app() -> Flask:
